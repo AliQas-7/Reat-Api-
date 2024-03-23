@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUD Web App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        #editItemForm{
+            margin-top: 2rem;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+</head>
+
+<body>
+
+    <h1>CRUD Web App</h1>
+
+    <!-- Form to create a new item -->
+    <form id="addItemForm">
+        <label for="itemName">Name:</label>
+        <input type="text" id="itemName" name="itemName" required>
+        <label for="itemDescription">Description:</label>
+        <input type="text" id="itemDescription" name="itemDescription" required>
+        <button type="button" onclick="addItem()">Add Item</button>
+    </form>
+
+    <!-- Display all items -->
+    <table id="itemsList">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <!-- Form to edit an item -->
+    <form id="editItemForm" style="display: none;">
+        <label for="editItemName">Name:</label>
+        <input type="text" id="editItemName" name="editItemName" required>
+        <label for="editItemDescription">Description:</label>
+        <input type="text" id="editItemDescription" name="editItemDescription" required>
+        <button type="button" onclick="saveEditedItem()">Save</button>
+    </form>
+
+    <script>
+        // Function to fetch and display all items
+        function fetchItems() {
+            $.get('http://localhost:3000/items', function (items) {
+                // Clear the itemsList div
+                $('#itemsList').empty();
+
+                // Display each item
+                items.forEach(function (item) {
+                    $('#itemsList').append(`
+                        <div>
+                            <p>Name: ${item.name}</p>
+                            <p>Description: ${item.description}</p>
+                            <button onclick="editItem('${item._id}')">Edit</button>
+                            <button onclick="deleteItem('${item._id}')">Delete</button>
+                        </div>
+                    `);
+                });
+            });
+        }
+
+        // Function to handle form submission (create new item)
+        function addItem() {
+    const newItem = {
+        name: $('#itemName').val(),
+        description: $('#itemDescription').val(),
+    };
+
+    $.ajax({
+        type: 'POST',
+        url: 'http://localhost:3000/items',
+        contentType: 'application/json',
+        data: JSON.stringify(newItem),
+        success: function () {
+            // After creating a new item, fetch and display all items
+            fetchItems();
+        },
+        error: function (error) {
+            console.error('Error adding item:', error);
+        }
+    });
+
+    // Clear the form fields after submission
+    $('#itemName').val('');
+    $('#itemDescription').val('');
+}
+
+
+        // Function to handle item deletion
+        function deleteItem(itemId) {
+            $.ajax({
+                url: `http://localhost:3000/items/${itemId}`,
+                type: 'DELETE',
+                success: function () {
+                    // After deleting an item, fetch and display all items
+                    fetchItems();
+                },
+            });
+        }
+
+        // Function to handle item editing
+        function editItem(itemId) {
+            // Fetch the item data by ID
+            $.get(`http://localhost:3000/items/${itemId}`, function (item) {
+                // Display the edit form and populate fields with item data
+                $('#editItemName').val(item.name);
+                $('#editItemDescription').val(item.description);
+
+                // Show the edit form
+                $('#editItemForm').show();
+
+                // Set the item ID for the saveEditedItem function
+                $('#editItemForm').data('itemId', itemId);
+            });
+        }
+
+        // Function to handle saving edited item
+        function saveEditedItem() {
+            // Get the item ID from the form data
+            const itemId = $('#editItemForm').data('itemId');
+            const editedItem = {
+                name: $('#editItemName').val(),
+                description: $('#editItemDescription').val(),
+            };
+
+            // Send a PUT request to update the item
+            $.ajax({
+                type: 'PUT',
+                url: `http://localhost:3000/items/${itemId}`,
+                contentType: 'application/json',
+                data: JSON.stringify(editedItem),
+                success: function () {
+                    // After updating the item, hide the edit form and fetch and display all items
+                    $('#editItemForm').hide();
+                    fetchItems();
+                },
+                error: function (error) {
+                    console.error('Error updating item:', error);
+                },
+            });
+        }
+
+        // Fetch and display items when the page loads
+        fetchItems();
+    </script>
+</body>
+
+</html>
